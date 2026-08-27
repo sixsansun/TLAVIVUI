@@ -1,5 +1,5 @@
 --[[
-    TEL-AVIV MENU v4
+    TEL-AVIV MENU v4.1
     Single-file Roblox/Luau UI library.
     Designed to be loaded from a GitHub raw URL with loadstring(game:HttpGet(...))().
 
@@ -12,7 +12,7 @@ local TweenService = game:GetService("TweenService")
 
 local Library = {}
 Library.__index = Library
-Library.Version = "4.0.0"
+Library.Version = "4.1.0"
 
 local COLORS = {
     Window = Color3.fromRGB(7, 8, 12),
@@ -547,7 +547,7 @@ function Library.new(config)
         config.Title or "TEL-AVIV MENU",
         11,
         COLORS.Muted2,
-        Enum.Font.GothamBold,
+        Enum.Font.GothamMedium,
         Enum.TextXAlignment.Right
     )
     title.Position = UDim2.new(1, -166, 0, 9)
@@ -623,7 +623,7 @@ function Library:AddCategory(options)
     local selectionWash = New("Frame", {
         Name = "SelectionWash",
         BackgroundColor3 = COLORS.Blue,
-        BackgroundTransparency = 0.28,
+        BackgroundTransparency = 0,
         BorderSizePixel = 0,
         Position = UDim2.fromOffset(0, 3),
         Size = UDim2.new(1, 0, 1, -6),
@@ -634,15 +634,45 @@ function Library:AddCategory(options)
     New("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, COLORS.BlueBright),
+            ColorSequenceKeypoint.new(0.46, COLORS.Blue),
             ColorSequenceKeypoint.new(1, COLORS.BlueSelection)
         }),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.46),
-            NumberSequenceKeypoint.new(0.32, 0.70),
+            NumberSequenceKeypoint.new(0, 0.52),
+            NumberSequenceKeypoint.new(0.16, 0.55),
+            NumberSequenceKeypoint.new(0.42, 0.68),
+            NumberSequenceKeypoint.new(0.70, 0.86),
             NumberSequenceKeypoint.new(1, 1)
         }),
         Rotation = 0
     }, selectionWash)
+
+    -- Secondary bloom makes the active tab fade progressively instead of
+    -- looking like a solid blue selected rectangle.
+    local selectionBloom = New("Frame", {
+        Name = "SelectionBloom",
+        BackgroundColor3 = COLORS.BlueBright,
+        BackgroundTransparency = 0,
+        BorderSizePixel = 0,
+        Position = UDim2.fromOffset(-2, 7),
+        Size = UDim2.new(0.72, 0, 1, -14),
+        Visible = false,
+        ZIndex = 4
+    }, row)
+    Corner(selectionBloom, 8)
+    New("UIGradient", {
+        Color = ColorSequence.new({
+            ColorSequenceKeypoint.new(0, COLORS.BlueBright),
+            ColorSequenceKeypoint.new(1, COLORS.BlueDark)
+        }),
+        Transparency = NumberSequence.new({
+            NumberSequenceKeypoint.new(0, 0.76),
+            NumberSequenceKeypoint.new(0.30, 0.82),
+            NumberSequenceKeypoint.new(0.72, 0.94),
+            NumberSequenceKeypoint.new(1, 1)
+        }),
+        Rotation = 0
+    }, selectionBloom)
 
     local indicatorHalo = New("Frame", {
         Name = "IndicatorHalo",
@@ -756,6 +786,7 @@ function Library:AddCategory(options)
     category.Label = nameLabel
     category.SelectionGlow = selectionGlow
     category.SelectionWash = selectionWash
+    category.SelectionBloom = selectionBloom
     category.IndicatorHalo = indicatorHalo
     category.TabBar = tabBar
     category.Window = window
@@ -763,13 +794,15 @@ function Library:AddCategory(options)
     function category:SetSelected(state)
         if state then
             Tween(row, 0.14, {
-                BackgroundTransparency = 0.58,
+                BackgroundTransparency = 0.94,
                 BackgroundColor3 = COLORS.BlueSelection
             })
             selectionWash.Visible = true
+            selectionBloom.Visible = true
             indicatorHalo.Visible = true
-            Tween(selectionWash, 0.14, {BackgroundTransparency = 0.18})
-            Tween(indicatorHalo, 0.14, {BackgroundTransparency = 0.58})
+            Tween(selectionWash, 0.14, {BackgroundTransparency = 0})
+            Tween(selectionBloom, 0.14, {BackgroundTransparency = 0})
+            Tween(indicatorHalo, 0.14, {BackgroundTransparency = 0.64})
             Tween(selectionGlow, 0.14, {BackgroundTransparency = 0.00})
             Tween(nameLabel, 0.14, {TextColor3 = Color3.fromRGB(181, 209, 248)})
             if category.Icon and category.Icon:IsA("ImageLabel") then
@@ -799,8 +832,10 @@ function Library:AddCategory(options)
         else
             Tween(row, 0.14, {BackgroundTransparency = 1})
             Tween(selectionWash, 0.14, {BackgroundTransparency = 1})
+            Tween(selectionBloom, 0.14, {BackgroundTransparency = 1})
             Tween(indicatorHalo, 0.14, {BackgroundTransparency = 1})
             selectionWash.Visible = false
+            selectionBloom.Visible = false
             indicatorHalo.Visible = false
             Tween(selectionGlow, 0.14, {BackgroundTransparency = 1})
             Tween(nameLabel, 0.14, {TextColor3 = COLORS.Muted})
@@ -878,7 +913,7 @@ function Library:AddCategory(options)
         local tabButton = Button(category.TabBar, name)
         tabButton.Size = UDim2.fromOffset(math.max(72, (#name * 7) + 22), 67)
         tabButton.TextSize = 15
-        tabButton.Font = Enum.Font.GothamBold
+        tabButton.Font = Enum.Font.GothamMedium
         tabButton.TextColor3 = COLORS.Muted
         tabButton.ZIndex = 6
 
@@ -1128,34 +1163,67 @@ function Library:AddCategory(options)
                 name.Size = UDim2.new(1, -42, 1, 0)
                 name.ZIndex = 7
 
+                -- Soft checkbox bloom: deliberately larger than the square so
+                -- it reads as emitted light instead of a second outline.
                 local glowWide = New("Frame", {
+                    Name = "ToggleGlowWide",
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
-                    Size = UDim2.fromOffset(31, 31),
+                    Size = UDim2.fromOffset(38, 38),
+                    BackgroundColor3 = COLORS.BlueBright,
+                    BackgroundTransparency = value and 0.95 or 1,
+                    BorderSizePixel = 0,
+                    ZIndex = 4
+                }, rowControl)
+                Corner(glowWide, 12)
+
+                local glowMid = New("Frame", {
+                    Name = "ToggleGlowMid",
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Position = UDim2.new(1, -12, 0.5, 0),
+                    Size = UDim2.fromOffset(30, 30),
                     BackgroundColor3 = COLORS.BlueBright,
                     BackgroundTransparency = value and 0.90 or 1,
                     BorderSizePixel = 0,
                     ZIndex = 5
                 }, rowControl)
-                Corner(glowWide, 7)
+                Corner(glowMid, 9)
 
                 local glow = New("Frame", {
+                    Name = "ToggleGlowCore",
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.new(1, -12, 0.5, 0),
-                    Size = UDim2.fromOffset(25, 25),
+                    Size = UDim2.fromOffset(24, 24),
                     BackgroundColor3 = COLORS.BlueBright,
-                    BackgroundTransparency = value and 0.70 or 1,
+                    BackgroundTransparency = value and 0.84 or 1,
                     BorderSizePixel = 0,
                     ZIndex = 6
                 }, rowControl)
-                Corner(glow, 5)
+                Corner(glow, 6)
+
+                -- Feather each glow layer vertically so none of them looks
+                -- like a second rounded-square border.
+                for _, glowLayer in ipairs({glowWide, glowMid, glow}) do
+                    New("UIGradient", {
+                        Color = ColorSequence.new(COLORS.BlueBright),
+                        Transparency = NumberSequence.new({
+                            NumberSequenceKeypoint.new(0, 1),
+                            NumberSequenceKeypoint.new(0.30, 0.78),
+                            NumberSequenceKeypoint.new(0.50, 0.36),
+                            NumberSequenceKeypoint.new(0.70, 0.78),
+                            NumberSequenceKeypoint.new(1, 1)
+                        }),
+                        Rotation = 90
+                    }, glowLayer)
+                end
+
                 local toggleShadow = Shadow(
                     glow,
-                    COLORS.Blue,
-                    value and 0.58 or 1,
-                    8,
+                    COLORS.BlueBright,
+                    value and 0.64 or 1,
+                    10,
                     UDim2.fromOffset(0, 0),
-                    UDim2.fromOffset(2, 2)
+                    UDim2.fromOffset(3, 3)
                 )
 
                 local box = Button(rowControl, "")
@@ -1163,10 +1231,15 @@ function Library:AddCategory(options)
                 box.Position = UDim2.new(1, -12, 0.5, 0)
                 box.Size = UDim2.fromOffset(18, 18)
                 box.BackgroundTransparency = 0
-                box.BackgroundColor3 = value and COLORS.BlueDark or Color3.fromRGB(18, 31, 44)
+                box.BackgroundColor3 = value and Color3.fromRGB(45, 111, 190) or Color3.fromRGB(18, 31, 44)
                 box.ZIndex = 8
                 Corner(box, 2)
-                Stroke(box, value and COLORS.Blue or Color3.fromRGB(25, 42, 58), 1, 0.08)
+                local boxStroke = Stroke(
+                    box,
+                    Color3.fromRGB(67, 73, 84),
+                    1,
+                    value and 0.56 or 0.70
+                )
 
                 local check = Label(
                     box,
@@ -1186,18 +1259,25 @@ function Library:AddCategory(options)
                     value = not not newValue
                     check.Visible = value
                     Tween(box, 0.10, {
-                        BackgroundColor3 = value and COLORS.BlueDark or Color3.fromRGB(18, 31, 44)
+                        BackgroundColor3 = value and Color3.fromRGB(45, 111, 190) or Color3.fromRGB(18, 31, 44)
                     })
                     Tween(glow, 0.10, {
-                        BackgroundTransparency = value and 0.66 or 1
+                        BackgroundTransparency = value and 0.84 or 1
+                    })
+                    Tween(glowMid, 0.10, {
+                        BackgroundTransparency = value and 0.90 or 1
                     })
                     Tween(glowWide, 0.10, {
-                        BackgroundTransparency = value and 0.88 or 1
+                        BackgroundTransparency = value and 0.95 or 1
+                    })
+                    Tween(boxStroke, 0.10, {
+                        Color = Color3.fromRGB(67, 73, 84),
+                        Transparency = value and 0.56 or 0.70
                     })
                     if toggleShadow then
                         toggleShadow.Enabled = value
                         Tween(toggleShadow, 0.10, {
-                            Transparency = value and 0.52 or 1
+                            Transparency = value and 0.64 or 1
                         })
                     end
                     if fire then
