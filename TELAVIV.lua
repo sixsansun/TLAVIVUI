@@ -1,5 +1,5 @@
 --[[
-    TEL-AVIV MENU v2
+    TEL-AVIV MENU v3
     Single-file Roblox/Luau UI library.
     Designed to be loaded from a GitHub raw URL with loadstring(game:HttpGet(...))().
 
@@ -12,7 +12,7 @@ local TweenService = game:GetService("TweenService")
 
 local Library = {}
 Library.__index = Library
-Library.Version = "2.0.0"
+Library.Version = "3.0.0"
 
 local COLORS = {
     Window = Color3.fromRGB(8, 9, 13),
@@ -23,13 +23,13 @@ local COLORS = {
     Control2 = Color3.fromRGB(20, 22, 29),
     Stroke = Color3.fromRGB(27, 30, 38),
     StrokeSoft = Color3.fromRGB(21, 23, 30),
-    Text = Color3.fromRGB(214, 216, 224),
-    Muted = Color3.fromRGB(143, 146, 158),
-    Muted2 = Color3.fromRGB(105, 108, 119),
-    Blue = Color3.fromRGB(74, 148, 239),
-    BlueBright = Color3.fromRGB(87, 164, 255),
+    Text = Color3.fromRGB(226, 228, 235),
+    Muted = Color3.fromRGB(166, 169, 180),
+    Muted2 = Color3.fromRGB(122, 125, 137),
+    Blue = Color3.fromRGB(72, 145, 236),
+    BlueBright = Color3.fromRGB(101, 177, 255),
     BlueDark = Color3.fromRGB(36, 91, 157),
-    BlueSelection = Color3.fromRGB(23, 48, 79),
+    BlueSelection = Color3.fromRGB(22, 49, 82),
     White = Color3.fromRGB(244, 246, 250),
     Knob = Color3.fromRGB(194, 199, 209),
 }
@@ -60,6 +60,121 @@ local function Stroke(parent, color, thickness, transparency)
     }, parent)
 end
 
+
+-- Native blurred shadow when the client supports UIShadow.
+-- A layered-frame fallback is used elsewhere for clients/executors without it.
+local function Shadow(parent, color, transparency, blurRadius, offset, spread)
+    local ok, object = pcall(function()
+        return Instance.new("UIShadow")
+    end)
+    if not ok or not object then
+        return nil
+    end
+
+    object.Color = color or Color3.new(0, 0, 0)
+    object.Transparency = transparency or 0.72
+    object.BlurRadius = UDim.new(0, blurRadius or 12)
+    object.Offset = offset or UDim2.fromOffset(0, 0)
+    object.Spread = spread or UDim2.fromOffset(1, 1)
+    object.ZIndex = -1
+    object.Parent = parent
+    return object
+end
+
+-- Lucide-style icon names, resolved through the same remote-icon-pack approach
+-- used by the reference library supplied by the user.
+local Icons = {}
+local DEFAULT_ICON_SOURCE =
+    "https://raw.githubusercontent.com/sixsansun/Library/refs/heads/main/icons"
+
+pcall(function()
+    local source = game:HttpGet(DEFAULT_ICON_SOURCE)
+    local loader = loadstring(source)
+    if loader then
+        local result = loader()
+        if type(result) == "table" then
+            Icons = result
+        end
+    end
+end)
+
+local IconAliases = {
+    ["home"] = "house",
+    ["user"] = "person",
+    ["user-round"] = "personCropCircle",
+    ["users"] = "person2",
+    ["eye"] = "eye",
+    ["crosshair"] = "dotCrosshair",
+    ["globe"] = "globe",
+    ["wifi"] = "wifi",
+    ["map-pin"] = "mappin",
+    ["package"] = "shippingbox",
+    ["package-plus"] = "shippingbox",
+    ["box"] = "shippingbox",
+    ["code"] = "chevronLeftForwardslashChevronRight",
+    ["code-2"] = "chevronLeftForwardslashChevronRight",
+    ["braces"] = "curlybraces",
+    ["sliders-horizontal"] = "sliderHorizontal3",
+    ["settings"] = "gearshape",
+    ["settings-2"] = "gearshape2",
+    ["wrench"] = "wrench",
+    ["car"] = "car",
+    ["move"] = "figureWalk",
+    ["skull"] = "exclamationmarkTriangle",
+}
+
+local BuiltInIcons = {
+    ["house"] = "rbxassetid://137977066267668",
+    ["figureWalk"] = "rbxassetid://79511822122227",
+    ["mappin"] = "rbxassetid://121615146959714",
+    ["car"] = "rbxassetid://128495454882226",
+    ["person2"] = "rbxassetid://112399905717309",
+    ["eye"] = "rbxassetid://111055543166389",
+    ["dotCrosshair"] = "rbxassetid://111411956958702",
+    ["exclamationmarkTriangle"] = "rbxassetid://107822175160368",
+}
+
+local DefaultCategoryIcons = {
+    Self = "user-round",
+    View = "eye",
+    Combat = "crosshair",
+    Online = "users",
+    Spawner = "package-plus",
+    Script = "code-2",
+    Misc = "sliders-horizontal",
+    Config = "settings",
+}
+
+local function NormalizeIconName(name)
+    name = tostring(name or "")
+    if IconAliases[name] then
+        return IconAliases[name]
+    end
+    return name:gsub("%-([%w])", function(character)
+        return string.upper(character)
+    end)
+end
+
+local function ResolveIcon(value, categoryName)
+    if value ~= nil then
+        if typeof(value) == "number" then
+            return "rbxassetid://" .. tostring(value), tostring(value)
+        end
+        local raw = tostring(value)
+        if raw:match("^rbxassetid://") or raw:match("^https?://") then
+            return raw, raw
+        end
+        if raw:match("^%d+$") then
+            return "rbxassetid://" .. raw, raw
+        end
+    end
+
+    local requested = value or DefaultCategoryIcons[tostring(categoryName or "")] or "circle"
+    local key = NormalizeIconName(requested)
+    local asset = Icons[key] or BuiltInIcons[key]
+    return asset, key
+end
+
 local function Padding(parent, left, right, top, bottom)
     return New("UIPadding", {
         PaddingLeft = UDim.new(0, left or 0),
@@ -75,8 +190,8 @@ local function Label(parent, value, size, color, font, alignment)
         BorderSizePixel = 0,
         Text = value or "",
         TextColor3 = color or COLORS.Text,
-        TextSize = size or 13,
-        Font = font or Enum.Font.GothamMedium,
+        TextSize = size or 14,
+        Font = font or Enum.Font.GothamSemibold,
         TextXAlignment = alignment or Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center
     }, parent)
@@ -89,8 +204,8 @@ local function Button(parent, value)
         BorderSizePixel = 0,
         Text = value or "",
         TextColor3 = COLORS.Text,
-        TextSize = 13,
-        Font = Enum.Font.GothamMedium
+        TextSize = 14,
+        Font = Enum.Font.GothamSemibold
     }, parent)
 end
 
@@ -227,33 +342,60 @@ function Library.new(config)
     end
     self.Gui = gui
 
-    local shadow = New("Frame", {
-        Name = "Shadow",
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(width + 10, height + 10),
-        BackgroundColor3 = Color3.new(0, 0, 0),
-        BackgroundTransparency = 0.48,
-        BorderSizePixel = 0,
-        ZIndex = 0
-    }, gui)
-    Corner(shadow, 9)
-
-    local main = New("Frame", {
-        Name = "Main",
+    -- One shared root holds BOTH the window and its shadow.
+    -- Dragging this root fixes the old "panel moves but outline/shadow stays behind" bug.
+    local root = New("Frame", {
+        Name = "WindowRoot",
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.fromScale(0.5, 0.5),
         Size = UDim2.fromOffset(width, height),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 1
+    }, gui)
+
+    -- Layered fallback shadow: soft, not a hard outline.
+    local shadowOuter = New("Frame", {
+        Name = "ShadowOuter",
+        Position = UDim2.fromOffset(-10, -8),
+        Size = UDim2.new(1, 20, 1, 22),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 0.82,
+        BorderSizePixel = 0,
+        ZIndex = 0
+    }, root)
+    Corner(shadowOuter, 13)
+
+    local shadowMid = New("Frame", {
+        Name = "ShadowMid",
+        Position = UDim2.fromOffset(-5, -3),
+        Size = UDim2.new(1, 10, 1, 12),
+        BackgroundColor3 = Color3.new(0, 0, 0),
+        BackgroundTransparency = 0.70,
+        BorderSizePixel = 0,
+        ZIndex = 0
+    }, root)
+    Corner(shadowMid, 10)
+
+    local main = New("Frame", {
+        Name = "Main",
+        Position = UDim2.fromOffset(0, 0),
+        Size = UDim2.fromScale(1, 1),
         BackgroundColor3 = COLORS.Window,
-        BackgroundTransparency = config.WindowTransparency or 0.08,
+        BackgroundTransparency = config.WindowTransparency or 0.13,
         BorderSizePixel = 0,
         ClipsDescendants = true,
         ZIndex = 1
-    }, gui)
+    }, root)
     Corner(main, 7)
-    Stroke(main, Color3.fromRGB(5, 6, 9), 1, 0.05)
+    Stroke(main, Color3.fromRGB(22, 24, 31), 1, 0.34)
+
+    -- Native blur if supported.
+    Shadow(main, Color3.new(0, 0, 0), 0.58, 16, UDim2.fromOffset(0, 4), UDim2.fromOffset(2, 2))
+
+    self.Root = root
     self.Main = main
-    self.Shadow = shadow
+    self.Shadow = shadowOuter
 
     New("UIGradient", {
         Color = ColorSequence.new({
@@ -274,7 +416,7 @@ function Library.new(config)
         Name = "Sidebar",
         Size = UDim2.new(0, sidebarWidth, 1, 0),
         BackgroundColor3 = COLORS.Sidebar,
-        BackgroundTransparency = config.SidebarTransparency or 0.07,
+        BackgroundTransparency = config.SidebarTransparency or 0.14,
         BorderSizePixel = 0,
         ZIndex = 2
     }, main)
@@ -356,7 +498,7 @@ function Library.new(config)
         Position = UDim2.fromOffset(sidebarWidth, 0),
         Size = UDim2.new(1, -sidebarWidth, 0, headerHeight),
         BackgroundColor3 = COLORS.Header,
-        BackgroundTransparency = config.HeaderTransparency or 0.15,
+        BackgroundTransparency = config.HeaderTransparency or 0.30,
         BorderSizePixel = 0,
         ZIndex = 2
     }, main)
@@ -366,15 +508,15 @@ function Library.new(config)
             ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 11, 15))
         }),
         Transparency = NumberSequence.new({
-            NumberSequenceKeypoint.new(0, 0.10),
-            NumberSequenceKeypoint.new(1, 0.22)
+            NumberSequenceKeypoint.new(0, 0.26),
+            NumberSequenceKeypoint.new(1, 0.42)
         }),
         Rotation = 90
     }, header)
 
     New("Frame", {
         BackgroundColor3 = COLORS.StrokeSoft,
-        BackgroundTransparency = 0.12,
+        BackgroundTransparency = 0.38,
         BorderSizePixel = 0,
         Position = UDim2.new(0, 0, 1, -1),
         Size = UDim2.new(1, 0, 0, 1),
@@ -386,12 +528,12 @@ function Library.new(config)
         config.Title or "TEL-AVIV MENU",
         11,
         COLORS.Muted2,
-        Enum.Font.GothamMedium,
+        Enum.Font.GothamSemibold,
         Enum.TextXAlignment.Right
     )
     title.Position = UDim2.new(1, -166, 0, 9)
     title.Size = UDim2.fromOffset(152, 18)
-    title.TextTransparency = 0.16
+    title.TextTransparency = 0.08
     title.ZIndex = 5
 
     local tabHost = New("Frame", {
@@ -416,15 +558,13 @@ function Library.new(config)
     self.TabHost = tabHost
     self.ContentHost = contentHost
 
-    MakeDraggable(header, main)
+    MakeDraggable(header, root)
 
     UserInputService.InputBegan:Connect(function(input, processed)
         if processed then return end
         local toggleKey = config.ToggleKey or Enum.KeyCode.RightShift
         if input.KeyCode == toggleKey then
-            local visible = not main.Visible
-            main.Visible = visible
-            shadow.Visible = visible
+            root.Visible = not root.Visible
         end
     end)
 
@@ -470,67 +610,64 @@ function Library:AddCategory(options)
     Corner(selectionGlow, 2)
 
     local iconHolder = New("Frame", {
-        BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(8, 9),
-        Size = UDim2.fromOffset(26, 26),
+        Name = "IconHolder",
+        BackgroundColor3 = Color3.fromRGB(24, 55, 91),
+        BackgroundTransparency = 0.88,
+        Position = UDim2.fromOffset(7, 10),
+        Size = UDim2.fromOffset(24, 24),
+        BorderSizePixel = 0,
         ZIndex = 6
     }, row)
+    Corner(iconHolder, 7)
+    local iconHolderStroke = Stroke(iconHolder, COLORS.Blue, 1, 0.72)
+    local iconHolderShadow = Shadow(
+        iconHolder,
+        COLORS.Blue,
+        0.78,
+        7,
+        UDim2.fromOffset(0, 0),
+        UDim2.fromOffset(1, 1)
+    )
 
-    local iconAsset = Asset(options.Icon)
+    local iconAsset, iconName = ResolveIcon(options.Icon, category.Name)
+    category.IconName = iconName
+
+    local icon
     if iconAsset then
-        local iconGlow = New("ImageLabel", {
+        icon = New("ImageLabel", {
+            Name = "LucideIcon",
             BackgroundTransparency = 1,
             AnchorPoint = Vector2.new(0.5, 0.5),
             Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(22, 22),
+            Size = UDim2.fromOffset(14, 14),
             Image = iconAsset,
             ImageColor3 = COLORS.Blue,
-            ImageTransparency = 0.82,
+            ImageTransparency = 0.27,
             ScaleType = Enum.ScaleType.Fit,
-            ZIndex = 6
+            ZIndex = 8
         }, iconHolder)
-
-        local icon = New("ImageLabel", {
-            BackgroundTransparency = 1,
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(16, 16),
-            Image = iconAsset,
-            ImageColor3 = COLORS.Blue,
-            ImageTransparency = 0.34,
-            ScaleType = Enum.ScaleType.Fit,
-            ZIndex = 7
-        }, iconHolder)
-        category.Icon = icon
-        category.IconGlow = iconGlow
     else
-        local ring = New("Frame", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(13, 13),
-            BackgroundColor3 = COLORS.Blue,
-            BackgroundTransparency = 0.88,
-            BorderSizePixel = 0,
-            ZIndex = 6
-        }, iconHolder)
-        Corner(ring, 10)
-        Stroke(ring, COLORS.Blue, 1, 0.48)
-
-        local dot = New("Frame", {
-            AnchorPoint = Vector2.new(0.5, 0.5),
-            Position = UDim2.fromScale(0.5, 0.5),
-            Size = UDim2.fromOffset(3, 3),
-            BackgroundColor3 = COLORS.Blue,
-            BackgroundTransparency = 0.28,
-            BorderSizePixel = 0,
-            ZIndex = 7
-        }, ring)
-        Corner(dot, 10)
-        category.Icon = ring
+        -- Last-resort fallback only if the remote icon pack is unavailable
+        -- AND there is no built-in asset for the requested icon.
+        icon = Label(
+            iconHolder,
+            "•",
+            14,
+            COLORS.Blue,
+            Enum.Font.GothamBold,
+            Enum.TextXAlignment.Center
+        )
+        icon.Size = UDim2.fromScale(1, 1)
+        icon.ZIndex = 8
     end
 
-    local nameLabel = Label(row, category.Name, 13, COLORS.Muted, Enum.Font.GothamSemibold)
-    nameLabel.Position = UDim2.fromOffset(37, 0)
+    category.Icon = icon
+    category.IconHolder = iconHolder
+    category.IconHolderStroke = iconHolderStroke
+    category.IconGlow = iconHolderShadow
+
+    local nameLabel = Label(row, category.Name, 14, COLORS.Muted, Enum.Font.GothamSemibold)
+    nameLabel.Position = UDim2.fromOffset(40, 0)
     nameLabel.Size = UDim2.new(1, -42, 1, 0)
     nameLabel.ZIndex = 6
 
@@ -559,24 +696,56 @@ function Library:AddCategory(options)
     function category:SetSelected(state)
         if state then
             Tween(row, 0.14, {
-                BackgroundTransparency = 0.08,
+                BackgroundTransparency = 0.20,
                 BackgroundColor3 = COLORS.BlueSelection
             })
-            Tween(selectionGlow, 0.14, {BackgroundTransparency = 0.28})
-            Tween(nameLabel, 0.14, {TextColor3 = Color3.fromRGB(160, 195, 245)})
+            Tween(selectionGlow, 0.14, {BackgroundTransparency = 0.06})
+            Tween(nameLabel, 0.14, {TextColor3 = Color3.fromRGB(166, 199, 246)})
             if category.Icon and category.Icon:IsA("ImageLabel") then
-                Tween(category.Icon, 0.14, {ImageTransparency = 0.05})
-            elseif category.Icon then
-                Tween(category.Icon, 0.14, {BackgroundTransparency = 0.76})
+                Tween(category.Icon, 0.14, {
+                    ImageTransparency = 0.02,
+                    ImageColor3 = COLORS.BlueBright
+                })
+            elseif category.Icon and category.Icon:IsA("TextLabel") then
+                Tween(category.Icon, 0.14, {TextColor3 = COLORS.BlueBright})
+            end
+            if category.IconHolder then
+                Tween(category.IconHolder, 0.14, {
+                    BackgroundTransparency = 0.72,
+                    BackgroundColor3 = Color3.fromRGB(26, 62, 105)
+                })
+            end
+            if category.IconHolderStroke then
+                Tween(category.IconHolderStroke, 0.14, {
+                    Transparency = 0.36,
+                    Color = COLORS.BlueBright
+                })
+            end
+            if category.IconGlow then
+                category.IconGlow.Enabled = true
+                Tween(category.IconGlow, 0.14, {Transparency = 0.62})
             end
         else
             Tween(row, 0.14, {BackgroundTransparency = 1})
             Tween(selectionGlow, 0.14, {BackgroundTransparency = 1})
             Tween(nameLabel, 0.14, {TextColor3 = COLORS.Muted})
             if category.Icon and category.Icon:IsA("ImageLabel") then
-                Tween(category.Icon, 0.14, {ImageTransparency = 0.36})
-            elseif category.Icon then
-                Tween(category.Icon, 0.14, {BackgroundTransparency = 0.88})
+                Tween(category.Icon, 0.14, {
+                    ImageTransparency = 0.34,
+                    ImageColor3 = COLORS.Blue
+                })
+            elseif category.Icon and category.Icon:IsA("TextLabel") then
+                Tween(category.Icon, 0.14, {TextColor3 = COLORS.Blue})
+            end
+            if category.IconHolder then
+                Tween(category.IconHolder, 0.14, {BackgroundTransparency = 0.88})
+            end
+            if category.IconHolderStroke then
+                Tween(category.IconHolderStroke, 0.14, {Transparency = 0.72})
+            end
+            if category.IconGlow then
+                Tween(category.IconGlow, 0.14, {Transparency = 1})
+                category.IconGlow.Enabled = false
             end
         end
     end
@@ -633,8 +802,8 @@ function Library:AddCategory(options)
 
         local tabButton = Button(category.TabBar, name)
         tabButton.Size = UDim2.fromOffset(math.max(72, (#name * 7) + 22), 67)
-        tabButton.TextSize = 14
-        tabButton.Font = Enum.Font.GothamSemibold
+        tabButton.TextSize = 15
+        tabButton.Font = Enum.Font.GothamBold
         tabButton.TextColor3 = COLORS.Muted
         tabButton.ZIndex = 6
 
@@ -648,6 +817,14 @@ function Library:AddCategory(options)
             ZIndex = 6
         }, tabButton)
         Corner(tabGlow, 2)
+        local tabGlowShadow = Shadow(
+            tabGlow,
+            COLORS.Blue,
+            1,
+            7,
+            UDim2.fromOffset(0, 0),
+            UDim2.fromOffset(2, 1)
+        )
 
         local page = New("Frame", {
             Name = category.Name .. "_" .. name .. "_Page",
@@ -701,6 +878,7 @@ function Library:AddCategory(options)
 
         tab.Button = tabButton
         tab.Glow = tabGlow
+        tab.GlowShadow = tabGlowShadow
         tab.Page = page
         tab.Left = left
         tab.Right = right
@@ -708,10 +886,18 @@ function Library:AddCategory(options)
         function tab:SetSelected(state)
             if state then
                 Tween(tabButton, 0.12, {TextColor3 = COLORS.Blue})
-                Tween(tabGlow, 0.12, {BackgroundTransparency = 0.42})
+                Tween(tabGlow, 0.12, {BackgroundTransparency = 0.10})
+                if tab.GlowShadow then
+                    tab.GlowShadow.Enabled = true
+                    Tween(tab.GlowShadow, 0.12, {Transparency = 0.54})
+                end
             else
                 Tween(tabButton, 0.12, {TextColor3 = COLORS.Muted})
                 Tween(tabGlow, 0.12, {BackgroundTransparency = 1})
+                if tab.GlowShadow then
+                    Tween(tab.GlowShadow, 0.12, {Transparency = 1})
+                    tab.GlowShadow.Enabled = false
+                end
             end
         end
 
@@ -759,14 +945,15 @@ function Library:AddCategory(options)
             local frame = New("Frame", {
                 Name = titleText .. "_Section",
                 BackgroundColor3 = COLORS.Panel,
-                BackgroundTransparency = options.Transparency or 0.16,
+                BackgroundTransparency = options.Transparency or 0.23,
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 0, height),
                 ClipsDescendants = true,
                 ZIndex = 4
             }, parentColumn)
             Corner(frame, 5)
-            Stroke(frame, COLORS.Stroke, 1, 0.08)
+            Stroke(frame, COLORS.Stroke, 1, 0.24)
+            Shadow(frame, Color3.new(0, 0, 0), 0.78, 10, UDim2.fromOffset(0, 2), UDim2.fromOffset(1, 1))
 
             New("UIGradient", {
                 Color = ColorSequence.new({
@@ -783,9 +970,9 @@ function Library:AddCategory(options)
             local sectionTitle = Label(
                 frame,
                 titleText,
-                14,
+                15,
                 COLORS.Text,
-                Enum.Font.GothamSemibold
+                Enum.Font.GothamBold
             )
             sectionTitle.Position = UDim2.fromOffset(11, 7)
             sectionTitle.Size = UDim2.new(1, -22, 0, 22)
@@ -838,7 +1025,7 @@ function Library:AddCategory(options)
                     opts.Name or "Toggle",
                     13,
                     COLORS.Text,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 name.Size = UDim2.new(1, -42, 1, 0)
                 name.ZIndex = 7
@@ -852,7 +1039,15 @@ function Library:AddCategory(options)
                     BorderSizePixel = 0,
                     ZIndex = 6
                 }, rowControl)
-                Corner(glow, 4)
+                Corner(glow, 5)
+                local toggleShadow = Shadow(
+                    glow,
+                    COLORS.Blue,
+                    value and 0.58 or 1,
+                    8,
+                    UDim2.fromOffset(0, 0),
+                    UDim2.fromOffset(2, 2)
+                )
 
                 local box = Button(rowControl, "")
                 box.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -885,8 +1080,14 @@ function Library:AddCategory(options)
                         BackgroundColor3 = value and COLORS.BlueDark or Color3.fromRGB(18, 31, 44)
                     })
                     Tween(glow, 0.10, {
-                        BackgroundTransparency = value and 0.76 or 1
+                        BackgroundTransparency = value and 0.72 or 1
                     })
+                    if toggleShadow then
+                        toggleShadow.Enabled = value
+                        Tween(toggleShadow, 0.10, {
+                            Transparency = value and 0.52 or 1
+                        })
+                    end
                     if fire then
                         Fire(opts.Callback, value)
                     end
@@ -918,9 +1119,9 @@ function Library:AddCategory(options)
                 local name = Label(
                     rowControl,
                     opts.Name or "Slider",
-                    13,
+                    14,
                     COLORS.Muted,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 name.Size = UDim2.new(1, -78, 0, 20)
                 name.ZIndex = 7
@@ -928,9 +1129,9 @@ function Library:AddCategory(options)
                 local valueLabel = Label(
                     rowControl,
                     "",
-                    13,
+                    14,
                     COLORS.Text,
-                    Enum.Font.GothamMedium,
+                    Enum.Font.GothamSemibold,
                     Enum.TextXAlignment.Right
                 )
                 valueLabel.Position = UDim2.new(1, -76, 0, 0)
@@ -948,13 +1149,26 @@ function Library:AddCategory(options)
                 }, rowControl)
                 Corner(track, 3)
 
+                -- Real soft glow: two feathered bands + native UIShadow when available.
+                local glowWide = New("Frame", {
+                    Name = "FillGlowWide",
+                    AnchorPoint = Vector2.new(0, 0.5),
+                    Position = UDim2.fromScale(0, 0.5),
+                    Size = UDim2.new(0, 0, 0, 17),
+                    BackgroundColor3 = COLORS.Blue,
+                    BackgroundTransparency = 0.90,
+                    BorderSizePixel = 0,
+                    ZIndex = 6
+                }, track)
+                Corner(glowWide, 9)
+
                 local glow = New("Frame", {
                     Name = "FillGlow",
                     AnchorPoint = Vector2.new(0, 0.5),
                     Position = UDim2.fromScale(0, 0.5),
                     Size = UDim2.new(0, 0, 0, 11),
-                    BackgroundColor3 = COLORS.Blue,
-                    BackgroundTransparency = 0.74,
+                    BackgroundColor3 = COLORS.BlueBright,
+                    BackgroundTransparency = 0.78,
                     BorderSizePixel = 0,
                     ZIndex = 7
                 }, track)
@@ -968,6 +1182,14 @@ function Library:AddCategory(options)
                     ZIndex = 8
                 }, track)
                 Corner(fill, 3)
+                local fillShadow = Shadow(
+                    fill,
+                    COLORS.BlueBright,
+                    0.52,
+                    8,
+                    UDim2.fromOffset(0, 0),
+                    UDim2.fromOffset(1, 1)
+                )
                 New("UIGradient", {
                     Color = ColorSequence.new({
                         ColorSequenceKeypoint.new(0, COLORS.BlueDark),
@@ -987,6 +1209,14 @@ function Library:AddCategory(options)
                 }, track)
                 Corner(knob, 3)
                 Stroke(knob, Color3.fromRGB(107, 112, 123), 1, 0.02)
+                Shadow(
+                    knob,
+                    COLORS.BlueBright,
+                    0.68,
+                    6,
+                    UDim2.fromOffset(0, 0),
+                    UDim2.fromOffset(1, 1)
+                )
 
                 local hitbox = Button(rowControl, "")
                 hitbox.Position = UDim2.fromOffset(0, 22)
@@ -1010,6 +1240,7 @@ function Library:AddCategory(options)
                     local alpha = (value - minimum) / math.max(0.000001, maximum - minimum)
                     fill.Size = UDim2.new(alpha, 0, 1, 0)
                     glow.Size = UDim2.new(alpha, 0, 0, 11)
+                    glowWide.Size = UDim2.new(alpha, 0, 0, 17)
                     knob.Position = UDim2.new(alpha, 0, 0.5, 0)
                     valueLabel.Text = formatValue(value)
                 end
@@ -1081,7 +1312,7 @@ function Library:AddCategory(options)
                     opts.Name or "Dropdown",
                     13,
                     COLORS.Text,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 name.Size = UDim2.new(0.50, -5, 0, closedHeight)
                 name.ZIndex = 7
@@ -1100,7 +1331,7 @@ function Library:AddCategory(options)
                     tostring(current),
                     12,
                     COLORS.Text,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 selected.Position = UDim2.fromOffset(9, 0)
                 selected.Size = UDim2.new(1, -31, 1, 0)
@@ -1236,7 +1467,7 @@ function Library:AddCategory(options)
                     opts.Name or "Bind",
                     13,
                     COLORS.Text,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 name.Size = UDim2.new(0.56, 0, 1, 0)
                 name.ZIndex = 7
@@ -1311,7 +1542,7 @@ function Library:AddCategory(options)
                     opts.Name or "Color",
                     13,
                     COLORS.Text,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 name.Size = UDim2.new(1, -42, 1, 0)
                 name.ZIndex = 7
@@ -1440,7 +1671,7 @@ function Library:AddCategory(options)
                     tostring(value or ""),
                     13,
                     COLORS.Muted,
-                    Enum.Font.GothamMedium
+                    Enum.Font.GothamSemibold
                 )
                 label.Size = UDim2.fromScale(1, 1)
                 label.ZIndex = 7
@@ -1496,13 +1727,22 @@ function Library:AddSidebarItem(name, icon)
     })
 end
 
+
+function Library:GetIcon(name)
+    local asset, resolved = ResolveIcon(name)
+    return asset, resolved
+end
+
 function Library:SetVisible(state)
-    self.Main.Visible = not not state
-    self.Shadow.Visible = not not state
+    if self.Root then
+        self.Root.Visible = not not state
+    else
+        self.Main.Visible = not not state
+    end
 end
 
 function Library:Toggle()
-    self:SetVisible(not self.Main.Visible)
+    self:SetVisible(not (self.Root and self.Root.Visible or self.Main.Visible))
 end
 
 function Library:Destroy()
