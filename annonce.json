@@ -1,0 +1,16 @@
+{
+  "owner": {
+    "name": "OWNER",
+    "avatar": "rbxassetid:8964489645"
+  },
+  "refresh_seconds": 60,
+  "announcements": [
+    {
+      "id": 1,
+      "title": "Announcement",
+      "message": "Bienvenue sur la nouvelle version du TEL-AVIV Menu !\n\nPas mal de nouveautés ont été ajoutées récemment :\n\nESP FRIEND\nVous pouvez maintenant ajouter vos amis directement dans l'ESP pour les reconnaître facilement en jeu.\n\nKEYBINDS\nVous pouvez choisir vos propres touches pour activer certaines options du menu, plus besoin de garder les touches par défaut.\n\nCONFIGS\nLe système de config est maintenant dispo. Vous pouvez sauvegarder vos réglages, exporter votre config sous forme de code et l'envoyer à quelqu'un. Il aura juste à coller le code dans Import Config pour récupérer tous les paramètres.\n\nNOUVELLES OPTIONS\nCar Orbit Fling et Car Uppercut ont été ajoutés au menu.\n\nEVENT LOGGER\nVous pouvez maintenant voir les events/remotes envoyés en jeu, leurs arguments et ce qui est envoyé au serveur. Ça peut servir pour comprendre comment certaines actions fonctionnent ou pour retrouver un remote précis.\n\nJ'ai aussi corrigé et amélioré pas mal de petits trucs un peu partout dans le menu.\n\nD'autres ajouts arrivent bientôt."
+      "published_at": "29/08/2026 • 02:25",
+      "enabled": true
+    }
+  ]
+}
