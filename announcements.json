@@ -1,36 +1,15 @@
 {
   "owner": {
     "name": "DrPurple",
-    "avatar": "rbxassetid://631727250"
+    "avatar": "631727250"
   },
   "refresh_seconds": 60,
   "announcements": [
     {
-      "id": 4,
-      "title": "TEST",
-      "message": "Welcome to thTESTnter.",
-      "published_at": "28/08/2026 • 22:30",
-      "enabled": true
-    },
-    {
-      "id": 3,
-      "title": "Announcement",
-      "message": "Welcome to the new TEL-AVIV Announcement Center.",
-      "published_at": "28/08/2026 • 22:30",
-      "enabled": true
-    },
-    {
-      "id": 2,
-      "title": "Update",
-      "message": "Announcements can now be changed without updating the menu script.",
-      "published_at": "28/08/2026 • 22:20",
-      "enabled": true
-    },
-    {
       "id": 1,
-      "title": "Info",
-      "message": "Replace the avatar value with your own rbxassetid:// image.",
-      "published_at": "28/08/2026 • 22:10",
+      "title": "Announcement",
+      "message": "TEL-AVIV announcement test.",
+      "published_at": "29/08/2026 \u2022 01:45",
       "enabled": true
     }
   ]
