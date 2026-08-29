@@ -1,0 +1,16 @@
+{
+  "owner": {
+    "name": "DrPurple",
+    "avatar": "rbxassetid:631727250"
+  },
+  "refresh_seconds": 60,
+  "announcements": [
+    {
+      "id": 1,
+      "title": "Announcement",
+      "message": "TEL-AVIV announcement test.",
+      "published_at": "29/08/2026 • 01:45",
+      "enabled": true
+    }
+  ]
+}
